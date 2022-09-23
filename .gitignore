@@ -1,6 +1,6 @@
 *.pyc
-.vscode
-.idle
+.vscode/
+.idea/
 venv/
 
 token.json
