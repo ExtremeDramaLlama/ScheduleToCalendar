@@ -26,10 +26,18 @@ DAYS_OF_WEEK = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"]
 
 br = mechanize.Browser()
 
+# Sets up week start and end (it defaults to starting on Monday).
+# Fun fact: this doesn't affect .day_of_week and .weekday(), because
+# those are delegated to the stdlib DateTime which doesn't know about
+# pendulum's starting/ending days.
+pendulum.week_starts_at(pendulum.SUNDAY)
+pendulum.week_ends_at(pendulum.SATURDAY)
+
 
 class Schedule(abc.Mapping):
     def __init__(self, week: DateTime):
         self.week = week
+        week.weekday()
         self._schedule: dict[str, dict[int, str]] = {
             day: dict() for day in DAYS_OF_WEEK
         }
@@ -111,7 +119,7 @@ class Schedule(abc.Mapping):
         return self._schedule.__iter__()
 
 
-def build_schedule_hour_url(timeslot: DateTime, unset=True):
+def build_schedule_hour_url(timeslot: DateTime, unset=False):
     """
     url = 'SchedulerWorker.aspx?Type=' + m_Type +
     '&Week=' + selectedWeekDate +
@@ -122,8 +130,29 @@ def build_schedule_hour_url(timeslot: DateTime, unset=True):
     selectedWeekDate: "09/11/2022"
     weekDay: int, 1-7
     hour: "9PM"
+
     """
-    week = timeslot.format("DD/MM/YYYY")
+    week = timeslot.subtract(days=timeslot.day_of_week)
+    week = week.format("MM/DD/YYYY")
+    weekday = timeslot.day_of_week + 1
+    hour = timeslot.format("hA")
+    set_ = "Remove" if unset else "Set"
+
+    return (
+        "https://prv.tutor.com/nGEN/Tools/ScheduleManager_v2/"
+        f"SchedulerWorker.aspx?Type={set_}"
+        f"&Week={week}"
+        f"&WeekDay={weekday}"
+        f"&Hour={hour}"
+    )
+
+
+def schedule_hour(week, day, hour):
+    slot = week.add(days=day, hours=hour)
+    url = build_schedule_hour_url(slot)
+    print(url)
+    req = mechanize.Request(url, method="POST")
+    return br.open(req)
 
 
 def build_login_url(program_guid, user_guid):
@@ -196,7 +225,6 @@ def get_html_for_week(week: str) -> str:
     The user MUST be logged in already."""
     # TODO: make the login a singleton type deal
     url = build_week_url(week)
-    print(url)
     response = br.open(url)
     if response.code != 200:
         raise Exception(f"Opening week URL gave error code: {response.code} ")
@@ -211,9 +239,12 @@ def parse_week(html) -> DateTime:
     return pendulum.from_format(m.group(1), "MM/DD/YYYY", tz="America/New_York")
 
 
-def add_current_week_to_calendar():
+def add_week_to_calendar(week=None):
     page_data = login_and_get_html()
+    if week:
+        page_data = get_html_for_week(week)
     week = parse_week(page_data)
+
     schedule = parse_schedule(page_data, week)
     simple_events = schedule.to_simple_events()
 
@@ -230,6 +261,8 @@ def add_current_week_to_calendar():
 
 
 def main():
+    week = DateTime.now().add(weeks=1)
+    add_week_to_calendar(week)
     pass
 
     # page_data = get_html_for_week("09/18/2022")
