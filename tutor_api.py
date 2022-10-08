@@ -1,8 +1,7 @@
-import sys, logging
 import re
 import json
 from collections import abc
-from typing import TypedDict, Literal, Iterator
+from typing import Iterator
 from dataclasses import dataclass
 
 from bs4 import BeautifulSoup
@@ -10,7 +9,6 @@ import mechanize
 import pendulum
 from pendulum import DateTime
 
-import calendar_api
 from calendar_api import SimpleEvent
 
 

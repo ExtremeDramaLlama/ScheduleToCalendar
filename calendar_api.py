@@ -1,4 +1,3 @@
-import datetime
 import os.path
 from typing import Iterable
 import json
@@ -10,7 +9,6 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from googleapiclient.http import BatchHttpRequest
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/calendar.events"]
@@ -160,6 +158,7 @@ def get_events_for_week(date: pendulum.DateTime) -> list:
 
 
 if __name__ == "__main__":
+    pass
     # print("Logging in and writing token.json")
-    events = get_events_for_week(pendulum.today("America/New_York"))
-    delete_all_events(events)
+    # events = get_events_for_week(pendulum.today("America/New_York"))
+    # delete_all_events(events)

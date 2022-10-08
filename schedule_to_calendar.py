@@ -2,7 +2,6 @@ import tutor_api
 import calendar_api
 import pendulum
 from pendulum import DateTime
-from typing import Union
 import click
 
 
