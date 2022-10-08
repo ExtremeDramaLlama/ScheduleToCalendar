@@ -1,0 +1,9 @@
+[project]
+name = "tutor_dot_com_add_schedule_to_calender"
+version = "0.1"
+authors = [
+    {name="Crispin Stichart"}
+]
+description = "Scrape the tutor.com schedule and add hours to your Google calendar"
+readme = "README.md"
+requires-python = ">=3.9"
