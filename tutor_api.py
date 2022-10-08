@@ -18,7 +18,7 @@ from calendar_api import SimpleEvent
 # logger.addHandler(logging.StreamHandler(sys.stdout))
 # logger.setLevel(logging.DEBUG)
 
-with open("secrets/login_credentials.json", "r") as f:
+with open("../headless-tutor-schedule/secrets/login_credentials.json", "r") as f:
     credentials = json.load(f)
 
 
