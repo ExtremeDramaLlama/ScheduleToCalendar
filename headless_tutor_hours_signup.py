@@ -29,7 +29,8 @@ br = mechanize.Browser()
 # Sets up week start and end (it defaults to starting on Monday).
 # Fun fact: this doesn't affect .day_of_week and .weekday(), because
 # those are delegated to the stdlib DateTime which doesn't know about
-# pendulum's starting/ending days.
+# pendulum's starting/ending days. Do I need them for anything?
+# I don't know!
 pendulum.week_starts_at(pendulum.SUNDAY)
 pendulum.week_ends_at(pendulum.SATURDAY)
 
@@ -50,7 +51,7 @@ class Schedule(abc.Mapping):
             start: int
             end: int
 
-        # Collapse nearby hours into one
+        # Collapse nearby hours into one Event
         def join_times(times: list[int]) -> list[Event]:
             if not times:
                 return []
@@ -87,7 +88,7 @@ class Schedule(abc.Mapping):
 
         return simple_events
 
-    def pretty(self) -> str:
+    def ascii_display(self) -> str:
         lines = [
             f"Week of {self.week.format('MM/DD/YYYY')}",
             "   " + " ".join(DAYS_OF_WEEK),
@@ -121,41 +122,40 @@ class Schedule(abc.Mapping):
 
 def build_schedule_hour_url(timeslot: DateTime, unset=False):
     """
-    url = 'SchedulerWorker.aspx?Type=' + m_Type +
-    '&Week=' + selectedWeekDate +
-    '&WeekDay=' + weekDay +
-    '&Hour=' + hour;
+    Build the URL that will actually schedule the given 1-hour timeslot.
 
-    m_Type: "Set"|"Remove"
-    selectedWeekDate: "09/11/2022"
+    type: "Set"|"Remove"
+    Week: "mm/dd/yyyy"
     weekDay: int, 1-7
     hour: "9PM"
-
     """
+
+    # The week actually has to be the start of the week, just like how
+    # the schedule displays it. I haven't tested it yet, but depending
+    # on the backend, it may be possible to use the timeslot date
+    # without modification, and set weekday to 1.
     week = timeslot.subtract(days=timeslot.day_of_week)
     week = week.format("MM/DD/YYYY")
     weekday = timeslot.day_of_week + 1
     hour = timeslot.format("hA")
-    set_ = "Remove" if unset else "Set"
+    type_ = "Remove" if unset else "Set"
 
     return (
         "https://prv.tutor.com/nGEN/Tools/ScheduleManager_v2/"
-        f"SchedulerWorker.aspx?Type={set_}"
+        f"SchedulerWorker.aspx?Type={type_}"
         f"&Week={week}"
         f"&WeekDay={weekday}"
         f"&Hour={hour}"
     )
 
 
-def schedule_hour(week, day, hour):
-    slot = week.add(days=day, hours=hour)
-    url = build_schedule_hour_url(slot)
-    print(url)
-    req = mechanize.Request(url, method="POST")
-    return br.open(req)
-
-
 def build_login_url(program_guid, user_guid):
+    """
+    Build URL for login page. The program/user GUIDs are both unique
+    to users (I assume, haven't checked) and the page won't load without them.
+    We could avoid needing them if we logged in from the main tutor.com page
+    and then navigated to the schedule.
+    """
     return (
         f"https://prv.tutor.com/"
         "nGEN/Tools/ScheduleManager_v2/setContactID.aspx"
@@ -163,13 +163,24 @@ def build_login_url(program_guid, user_guid):
     )
 
 
-def build_week_url(week):
-    """Week in the form of `09/25/2022`"""
+def build_week_url(week: str):
+    """
+    Builds the URL for the schedule page for a given week. Week is in the
+    form of `mm/dd/yyyy`.
+    """
     return (
         f"https://prv.tutor.com/nGEN/Tools/"
         "ScheduleManager_v2/default.aspx?"
         f"SelectedDate={week}&DaysToAdd=0"
     )
+
+
+def schedule_hour(week, day, hour, unset=False):
+    slot = week.add(days=day, hours=hour)
+    url = build_schedule_hour_url(slot, unset=unset)
+    print(url)
+    req = mechanize.Request(url, method="POST")
+    return br.open(req)
 
 
 def parse_schedule(html, week) -> Schedule:
@@ -202,7 +213,13 @@ def parse_schedule(html, week) -> Schedule:
 
 
 def login_and_get_html() -> str:
-    """Login and scrape all HTML from schedule page"""
+    """
+    Logs in and returns the HTML form the schedule page, which will
+    be for the current week.
+
+    Calling this twice will crash things, because the login page will be
+    skipped, and mechanize won't be able to find the login form.
+    """
     url = build_login_url(credentials["program_id"], credentials["user_id"])
     br.open(url)
     form = br.forms()[0]
@@ -221,8 +238,10 @@ def login_and_get_html() -> str:
 
 
 def get_html_for_week(week: str) -> str:
-    """Loads the schedule for the given week and returns the HTML.
-    The user MUST be logged in already."""
+    """
+    Loads the schedule for the given week and returns the HTML. The user
+    MUST be logged in already.
+    """
     # TODO: make the login a singleton type deal
     url = build_week_url(week)
     response = br.open(url)
@@ -232,7 +251,10 @@ def get_html_for_week(week: str) -> str:
 
 
 def parse_week(html) -> DateTime:
-    """Grab the week from the schedule, parse into DateTime"""
+    """
+    Extract the week from the schedule page and parse it into a
+    DateTime.
+    """
     s = BeautifulSoup(html, features="html5lib")
     script = str(s.form.find_all("script")[-1].string)
     m = re.search(r"WEEK OF (\d\d/\d\d/\d\d\d\d) -", script)
@@ -240,6 +262,10 @@ def parse_week(html) -> DateTime:
 
 
 def add_week_to_calendar(week=None):
+    """
+    For the current or specified week, put all scheduled tutoring times
+    into your Google calendar.
+    """
     page_data = login_and_get_html()
     if week:
         page_data = get_html_for_week(week)
