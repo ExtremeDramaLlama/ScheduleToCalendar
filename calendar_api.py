@@ -86,8 +86,8 @@ def batch_callback(id, response, exception):
         print(f"Error with batch request, id={id}")
         raise Exception(str(exception))
 
-    if response:
-        print(response)
+    # if response:
+    #     print(response)
 
 
 def add_events(events: Iterable[SimpleEvent]):

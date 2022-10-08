@@ -261,34 +261,9 @@ def parse_week(html) -> DateTime:
     return pendulum.from_format(m.group(1), "MM/DD/YYYY", tz="America/New_York")
 
 
-def add_week_to_calendar(week=None):
-    """
-    For the current or specified week, put all scheduled tutoring times
-    into your Google calendar.
-    """
-    page_data = login_and_get_html()
-    if week:
-        page_data = get_html_for_week(week)
-    week = parse_week(page_data)
-
-    schedule = parse_schedule(page_data, week)
-    simple_events = schedule.to_simple_events()
-
-    # merge the schedule lists for all days
-    whole_week = []
-    for day_sched in simple_events.values():
-        whole_week.extend(day_sched)
-
-    # first delete the existing events for that week
-    calendar_api.delete_all_events(calendar_api.get_events_for_week(week))
-
-    # add the new events
-    calendar_api.add_events(whole_week)
-
-
 def main():
-    week = DateTime.now().add(weeks=1)
-    add_week_to_calendar(week)
+    # week = DateTime.now().add(weeks=1)
+    # add_week_to_calendar(week)
     pass
 
     # page_data = get_html_for_week("09/18/2022")
