@@ -79,9 +79,9 @@ def get_creds():
     return creds
 
 
-def batch_callback(id, response, exception):
+def batch_callback(id_, _response, exception):
     if exception:
-        print(f"Error with batch request, id={id}")
+        print(f"Error with batch request, id={id_}")
         raise Exception(str(exception))
 
     # if response:
