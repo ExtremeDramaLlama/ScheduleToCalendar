@@ -128,15 +128,11 @@ def delete_all_events(events: list[dict]):
 
 
 def get_events_for_week(date: pendulum.DateTime) -> list:
-    """Shows basic usage of the Google Calendar API.
-    Prints the start and name of the next 10 events on the user's calendar.
-    """
     events = []
 
     try:
         service = build("calendar", "v3", credentials=get_creds())
         # Call the Calendar API
-        print("Getting the upcoming 10 events")
         request = service.events().list(
             calendarId=credentials["calendar_id"],
             timeMin=date.start_of("week"),

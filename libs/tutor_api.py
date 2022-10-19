@@ -9,14 +9,14 @@ import mechanize
 import pendulum
 from pendulum import DateTime
 
-from calendar_api import SimpleEvent
+from libs.calendar_api import SimpleEvent
 
 
 # logger = logging.getLogger("mechanize")
 # logger.addHandler(logging.StreamHandler(sys.stdout))
 # logger.setLevel(logging.DEBUG)
 
-with open("../headless-tutor-schedule/secrets/login_credentials.json", "r") as f:
+with open("secrets/login_credentials.json", "r") as f:
     credentials = json.load(f)
 
 

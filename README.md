@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This program interacts with the tutor.com scheduling system and is (going to be) used for importing the schedule into Google Calender, and for automatically signing up for hours when they become available. 
+This program interacts with the tutor.com scheduling system and is used for importing the schedule into Google Calender, and for automatically signing up for hours when they become available (latter feature under development). 
 
 ## Setup
 
@@ -20,6 +20,8 @@ On the first run, it will open a web browser and prompt you to login to your goo
 
 ### Usage
 
-To add the current week's schedule to your calendar, simply run `add_to_calendar.py`. To add next week's schedule, run with the `next` argument. To add an arbitrary week's schedule, pass in any date from that that week, in the form of `mm/dd/yyyy`.
+To add the current week's schedule to your calendar, simply run `schedule_to_calendar.py`. To add next week's schedule, run with the `--next` argument. To add an arbitrary week's schedule, use the `--week <date>` option, where `<date>` is any date from that week, in the form of `mm/dd/yyyy`.
 
-Note that when adding a week, it first deletes all the events from that week, then adds. This is an unsophisticated way of ensuring there are no duplicates, and handles you dropping hours. This is also why you really should set up a specific calender to house these events. 
+### Warning
+
+When adding a week, it first deletes all the events from that week, then adds the new ones. This is an unsophisticated way of ensuring there are no duplicates, and handles you dropping hours. This is also why you really should set up a specific calender to house these events. 

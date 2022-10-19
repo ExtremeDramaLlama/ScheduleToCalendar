@@ -1,5 +1,4 @@
-import tutor_api
-import calendar_api
+from libs import tutor_api, calendar_api
 import pendulum
 from pendulum import DateTime
 import click
@@ -32,6 +31,8 @@ def add_week_command(next, week):
         week_to_add = pendulum.parse(week.isoformat())
     add_week_to_calendar(week_to_add)
 
+    print("It worked! Probably!")
+
 
 def add_week_to_calendar(week: DateTime):
     """
@@ -42,7 +43,7 @@ def add_week_to_calendar(week: DateTime):
     if week:  # currently unneeded, need to improve backend
         if type(week) is DateTime:
             week = format_week(week)
-            print(f"Formatted week is: {week}")
+            # print(f"Formatted week is: {week}")
         page_data = tutor_api.get_html_for_week(week)
     week = tutor_api.parse_week(page_data)
 
