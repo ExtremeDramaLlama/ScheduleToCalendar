@@ -23,6 +23,7 @@ with open("secrets/login_credentials.json", "r") as f:
 DAYS_OF_WEEK = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"]
 
 br = mechanize.Browser()
+br.set_handle_robots(False)
 
 # Sets up week start and end (it defaults to starting on Monday).
 # Fun fact: this doesn't affect .day_of_week and .weekday(), because
@@ -34,12 +35,49 @@ pendulum.week_ends_at(pendulum.SATURDAY)
 
 
 class Schedule(abc.Mapping):
-    def __init__(self, week: DateTime):
-        self.week = week
-        week.weekday()
-        self._schedule: dict[str, dict[int, str]] = {
-            day: dict() for day in DAYS_OF_WEEK
-        }
+    def __init__(self, html):
+        html = BeautifulSoup(html, features="html5lib")
+        self.hours_scheduled = int(html.find(id="lblScheduledHours").text)
+        self.week = self.parse_week(html)
+        self._schedule: dict[str, dict[int, str]] = self.parse_schedule(html)
+
+    @staticmethod
+    def parse_week(html: BeautifulSoup) -> DateTime:
+        """
+        Extract the week from the schedule page and parse it into a
+        DateTime.
+        """
+        script = str(html.form.find_all("script")[-1].string)
+        m = re.search(r"WEEK OF (\d\d/\d\d/\d\d\d\d) -", script)
+        return pendulum.from_format(m.group(1), "MM/DD/YYYY", tz="America/New_York")
+
+    @staticmethod
+    def parse_schedule(html: BeautifulSoup) -> dict[str, dict[int, str]]:
+        script = str(html.form.find_all("script")[-1].string)
+        # Use +? to perform non-greedy match
+        cell_calls = re.findall("fillCell\(.+?\)", script)
+        extracted_cells: list[tuple[int, str]] = []
+        for cell in cell_calls:
+            # Extract the cell index and status ("Available" or
+            # "Scheduled!") We need 2 backslashes because the HTML contains
+            # a single backslash, and the regex parser needs it to be
+            # escaped. We're using a raw string so we don't have to use even
+            # more backslashes to escape these backslashes.
+            pattern = r"fillCell\(.+, \\'(.+)\\', \\'(.*)\\',.+\)"
+            index, status = re.search(pattern, cell).groups()
+            extracted_cells.append((int(index), status))
+
+        # parse the cell indices into hour and day
+        schedule: dict[str, dict[int, str]] = {day: dict() for day in DAYS_OF_WEEK}
+        for index, status in extracted_cells:
+            if status:
+                # Note that the javascript cells don't match to the table
+                # cells. This is only the selectable portion of the table,
+                # so only 7 wide.
+                hour = index // 7
+                day = index % 7
+                schedule[DAYS_OF_WEEK[day]][hour] = status
+        return schedule
 
     def to_simple_events(self):
         @dataclass
@@ -93,7 +131,7 @@ class Schedule(abc.Mapping):
         ]
 
         for hour in range(24):
-            line = str(hour)
+            line = str(hour).rjust(2) + " "
             for daily_schedule in self.values():
                 if status := daily_schedule.get(hour):
                     line += f" {status[0]}  "
@@ -173,41 +211,25 @@ def build_week_url(week: str):
     )
 
 
-def schedule_hour(week, day, hour, unset=False):
+# TODO: accept a single precise DateTime, or a
+#       DateTime that's within the week sometime
+def schedule_hour(week: DateTime, day: int, hour: int, unset=False) -> bool:
+    """
+    `week` is the start of the week.
+    `day` is 0-6 -- sunday is zero.
+    `hour` is 0-23
+    """
     slot = week.add(days=day, hours=hour)
     url = build_schedule_hour_url(slot, unset=unset)
-    print(url)
-    req = mechanize.Request(url, method="POST")
-    return br.open(req)
+    response = mechanize.Request(url, method="POST")
 
-
-def parse_schedule(html, week) -> Schedule:
-    s = BeautifulSoup(html, features="html5lib")
-    script = str(s.form.find_all("script")[-1].string)
-    # Use +? to perform non-greedy match
-    cell_calls = re.findall("fillCell\(.+?\)", script)
-    extracted_cells: list[tuple[int, str]] = []
-    for cell in cell_calls:
-        # Extract the cell index and status ("Available" or
-        # "Scheduled!") We need 2 backslashes because the HTML contains
-        # a single backslash, and the regex parser needs it to be
-        # escaped. We're using a raw string so we don't have to use even
-        # more backslashes to escape these backslashes.
-        pattern = r"fillCell\(.+, \\'(.+)\\', \\'(.*)\\',.+\)"
-        index, status = re.search(pattern, cell).groups()
-        extracted_cells.append((int(index), status))
-
-    # parse the cell indices into hour and day
-    schedule = Schedule(week)
-    for index, status in extracted_cells:
-        if status:
-            # Note that the javascript cells don't match to the table
-            # cells. This is only the selectable portion of the table,
-            # so only 7 wide.
-            hour = index // 7
-            day = index % 7
-            schedule[DAYS_OF_WEEK[day]][hour] = status
-    return schedule
+    response = br.open(response).get_data()
+    if response == b"ScheduleSelectedComplete(1);":
+        return True
+    elif response == b"ScheduleSelectedComplete(0);":
+        return False
+    else:
+        raise Exception(f"Unforeseen response: {response}")
 
 
 def login_and_get_html() -> str:
@@ -235,28 +257,19 @@ def login_and_get_html() -> str:
     return str(response.get_data())
 
 
-def get_html_for_week(week: str) -> str:
+def get_html_for_week(week: str | DateTime) -> str:
     """
     Loads the schedule for the given week and returns the HTML. The user
     MUST be logged in already.
     """
+    if type(week) == DateTime:
+        week = week.format("MM/DD/YYYY")
     # TODO: make the login a singleton type deal
     url = build_week_url(week)
     response = br.open(url)
     if response.code != 200:
         raise Exception(f"Opening week URL gave error code: {response.code} ")
     return str(response.get_data())
-
-
-def parse_week(html) -> DateTime:
-    """
-    Extract the week from the schedule page and parse it into a
-    DateTime.
-    """
-    s = BeautifulSoup(html, features="html5lib")
-    script = str(s.form.find_all("script")[-1].string)
-    m = re.search(r"WEEK OF (\d\d/\d\d/\d\d\d\d) -", script)
-    return pendulum.from_format(m.group(1), "MM/DD/YYYY", tz="America/New_York")
 
 
 def main():

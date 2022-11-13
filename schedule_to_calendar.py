@@ -4,10 +4,6 @@ from pendulum import DateTime
 import click
 
 
-def format_week(week: DateTime) -> str:
-    return week.format("MM/DD/YYYY")
-
-
 @click.command(help="Add the current week's schedule to your calendar.")
 @click.option(
     "--next", is_flag=True, help="Adds next week's schedule to your calendar."
@@ -41,13 +37,9 @@ def add_week_to_calendar(week: DateTime):
     """
     page_data = tutor_api.login_and_get_html()
     if week:  # currently unneeded, need to improve backend
-        if type(week) is DateTime:
-            week = format_week(week)
-            # print(f"Formatted week is: {week}")
         page_data = tutor_api.get_html_for_week(week)
-    week = tutor_api.parse_week(page_data)
 
-    schedule = tutor_api.parse_schedule(page_data, week)
+    schedule = tutor_api.Schedule(page_data)
     simple_events = schedule.to_simple_events()
 
     # merge the schedule lists for all days
