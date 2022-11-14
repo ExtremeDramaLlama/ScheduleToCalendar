@@ -16,7 +16,7 @@ from pendulum import DateTime
 # don't violate previous rules
 WEEKENDS = ["TUE", "THU"]
 START_TIME = 11
-END_TIME = 21  # Don't schedule this hour or past it
+END_TIME = 24  # Don't schedule this hour or past it
 MAX_PER_DAY = 8
 MAX_PER_WEEK = 40
 
