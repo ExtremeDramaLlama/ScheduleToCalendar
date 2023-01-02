@@ -14,11 +14,11 @@ from pendulum import DateTime
 # if hours less than 40, take second pass
 # start after last scheduled hour
 # don't violate previous rules
-WEEKENDS = ["TUE", "THU"]
+WEEKENDS = ["MON", "WED"]
 START_TIME = 11
 END_TIME = 24  # Don't schedule this hour or past it
 MAX_PER_DAY = 8
-MAX_PER_WEEK = 40
+MAX_PER_WEEK = 52
 
 
 def main():
