@@ -1,6 +1,7 @@
 from libs import tutor_api, calendar_api
 import pendulum
 from pendulum import DateTime
+from datetime import datetime
 import click
 
 
@@ -18,7 +19,7 @@ import click
         "03/23/2022, or 11/09/2023. If --next was provided, this option is ignored."
     ),
 )
-def add_week_command(next, week):
+def add_week_command(next: bool, week: datetime | None):
     week_to_add = DateTime.now()
     if next:
         week_to_add = DateTime.now().add(weeks=1)

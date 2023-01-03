@@ -29,5 +29,5 @@ def test_auto_scheduler(monkeypatch):
     s = create_test_schedule()
     print(s.ascii_display())
 
-    auto_scheduler.schedule_hours(s)
+    auto_scheduler.get_hours_to_schedule(s)
     print(s.ascii_display())
