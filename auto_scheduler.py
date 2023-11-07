@@ -83,8 +83,8 @@ def schedule_hours_in_threads(week: DateTime, hours_to_schedule: list[tuple[int,
     # now we wait until 11:00
     now = DateTime.now()
     # one second after eleven to provide some wiggle room for clock difference
-    eleven = DateTime(now.year, now.month, now.day, 11, 0, 1)
-    delta: Period = now.diff(eleven)
+    eleven = DateTime(now.year, now.month, now.day, 11, 0, 1, tzinfo=now.tzinfo)
+    delta: Period = now.diff(eleven, abs=False)
     if delta.in_seconds() > 0:
         print(f"Sleeping for {delta.in_seconds()} seconds")
         time.sleep(delta.in_seconds())
@@ -93,6 +93,7 @@ def schedule_hours_in_threads(week: DateTime, hours_to_schedule: list[tuple[int,
     for thread in threads:
         thread.run()
 
+    print("Waiting for threads")
     barrier.wait()
 
     return successfully_scheduled
