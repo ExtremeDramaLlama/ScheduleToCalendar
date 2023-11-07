@@ -114,10 +114,17 @@ class Schedule(abc.Mapping):
             day_index = DAYS_OF_WEEK.index(day)
             simple_events_list = []
             for event in events:
+                # When daylight savings happens, the week start is an hour off.
+                # Hence this method, instead of using add(), which I was doing
+                # originally. But we do have to use add for the event ent,
+                # because event.end might be 24.
+                day_start = self.week.add(days=day_index)
+                event_start = DateTime(day_start.year, day_start.month, day_start.day, event.start)
+                event_end = event_start.add(hours=(event.end - event.start))
                 simple = SimpleEvent(
                     "Tutoring",
-                    start=self.week.add(days=day_index, hours=event.start),
-                    end=self.week.add(days=day_index, hours=event.end),
+                    start=event_start,
+                    end=event_end,
                 )
                 simple_events_list.append(simple)
             simple_events[day] = simple_events_list
