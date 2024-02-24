@@ -1,5 +1,7 @@
 *.pyc
+*.lnk
 .vscode/
 .idea/
 venv/
 tests/tmp/
+/run-calendar-sync.ps1
